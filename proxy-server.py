@@ -6,29 +6,21 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import requests
 from bs4 import BeautifulSoup
-from bs4.element import Comment
 
 SIX_LETTER_WORD_PATTERN = r'\b(\w{6})\b'
 EMOJI_LIST = itertools.cycle(['😀', '😍', '😈'])
 
-NON_VISIBLE_TAGS = [
-    'style',
-    'script',
-    'head',
-    'title',
-    'meta',
-    '[document]'
+HEADERS_TO_DELETE = [
+    'Content-Encoding',
+    'Transfer-Encoding',
+    'Connection',
 ]
 
 log = logging.getLogger('python-proxy')
 
-HEADERS_TO_DELETE = [
-    'Content-Encoding',
-]
-
 
 def add_emoji(content):
-    """Add emodji after each 6 letter word """
+    """Add emoji after each 6 letter word"""
     for element in content.find_all(['p', 'li']):
         if not getattr(element, 'text', None):
             continue
@@ -39,18 +31,20 @@ def add_emoji(content):
             text
         )
         element.string = new_text
-        print(element.text)
 
     return content
 
 
 def get_emoji():
+    """Retrieve emoji from list"""
     return next(EMOJI_LIST)
 
 
 class ProxyServer(BaseHTTPRequestHandler):
+    """Proxy server to modify html pages"""
 
     def do_GET(self):
+        """Parse page and modify content"""
         response = requests.get(self.path)
         if response:
             content = self.modify_content(response.text)
@@ -61,22 +55,25 @@ class ProxyServer(BaseHTTPRequestHandler):
             log.error(f'Error: {response.reason} {response.status_code}')
             self.send_error(response.status_code, response.reason)
 
-    def clean_headers(self, headers):
+    def clean_headers(self, headers: dict) -> dict:
+        """Need to clean some headers to avoid issues with
+        connection reset by peer for example"""
         [
             headers.pop(header_to_delete, None)
             for header_to_delete in HEADERS_TO_DELETE
         ]
         return headers
 
-    def send_headers(self, headers):
-        """Need to clean some headers"""
+    def send_headers(self, headers: dict) -> None:
+        """Send cleaned headers"""
         cleaned_headers = self.clean_headers(headers)
         for header, value in cleaned_headers.items():
             self.send_header(header, value)
 
         self.end_headers()
 
-    def modify_content(self, html):
+    def modify_content(self, html: str):
+        """Modify html content"""
         soup = BeautifulSoup(html, 'lxml')
         content = add_emoji(soup)
         return content
