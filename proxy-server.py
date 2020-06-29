@@ -7,16 +7,18 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import requests
 from bs4 import BeautifulSoup
 
+# re pattern to find 6 letter words
 SIX_LETTER_WORD_PATTERN = r'\b(\w{6})\b'
+# list with available emoji
 EMOJI_LIST = itertools.cycle(['😀', '😍', '😈'])
-
+# list with not allowed headers to response
 HEADERS_TO_DELETE = [
     'Content-Encoding',
     'Transfer-Encoding',
     'Connection',
 ]
 
-log = logging.getLogger('python-proxy')
+logger = logging.getLogger('python-proxy')
 
 
 def add_emoji(content):
@@ -36,7 +38,9 @@ def add_emoji(content):
 
 
 def get_emoji():
-    """Retrieve emoji from list"""
+    """ Return emoji from the iterable until it is exhausted.
+    Then repeat the sequence indefinitely.
+    """
     return next(EMOJI_LIST)
 
 
@@ -45,15 +49,20 @@ class ProxyServer(BaseHTTPRequestHandler):
 
     def do_GET(self):
         """Parse page and modify content"""
-        response = requests.get(self.path)
-        if response:
-            content = self.modify_content(response.text)
-            self.send_response(HTTPStatus.OK)
-            self.send_headers(response.headers)
-            self.wfile.write(bytes(str(content), "utf-8"))
-        else:
-            log.error(f'Error: {response.reason} {response.status_code}')
-            self.send_error(response.status_code, response.reason)
+        try:
+            response = requests.get(self.path)
+            if response:
+                content = self.modify_content(response.text)
+                self.send_response(HTTPStatus.OK)
+                self.send_headers(response.headers)
+                self.wfile.write(bytes(str(content), "utf-8"))
+            else:
+                logger.error(
+                    f'Error: {response.reason} {response.status_code}'
+                )
+                self.send_error(response.status_code, response.reason)
+        except Exception as e:
+            logger.error(e)
 
     def clean_headers(self, headers: dict) -> dict:
         """Need to clean some headers to avoid issues with
