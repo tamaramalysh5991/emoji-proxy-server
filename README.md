@@ -19,3 +19,7 @@ python3 proxy-server.py
 ```
 Also, need the set proxy server address in your browser
 Default address is `127.0.0.1:8080`
+
+
+Example of result:
+![Test 1](docs/screenshot.png)
