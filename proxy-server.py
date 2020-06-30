@@ -18,12 +18,15 @@ HEADERS_TO_DELETE = [
     'Connection',
 ]
 
+TEXT_TAGS = [
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'li', 'code', 'dd',
+]
 logger = logging.getLogger('python-proxy')
 
 
 def add_emoji(content):
     """Add emoji after each 6 letter word"""
-    for element in content.find_all(['p', 'li']):
+    for element in content.find_all(TEXT_TAGS):
         if not getattr(element, 'text', None):
             continue
         text = element.text
